@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">AntiBloater</string>
+    <string name="buffer_size_key">buffer_size</string>
+    <string name="auto_shell_key">auto_shell</string>
+    <string name="startup_command_key">startup_command</string>
+    <string name="pair_title">Pairing information</string>
+    <string name="pair_message">You must connect this device to LADB using a pairing code from the \"Wireless
+        debugging\" page in the Developer Settings page. If you have not done this before, click \"Help\" for a
+        tutorial.
+    </string>
+
+    <string name="help">Help</string>
+    <string name="more">More</string>
+    <string name="pair">Pair</string>
+    <string name="skip">Skip</string>
+
+    <string name="paired_key">paired</string>
+    <string name="port_hint">Port</string>
+
+    <string name="code_hint">Pairing code</string>
+
+    <string name="command_hint">Shell command</string>
+    <string name="command_hint_waiting">Waiting for connection…</string>
+
+    <string name="developer_url">https://www.github.com/tytydraco</string>
+    <string name="source_url">https://www.github.com/tytydraco/LADB</string>
+    <string name="contact_url">mailto:tnnijmeh@gmail.com</string>
+    <string name="tutorial_url">https://www.xda-developers.com/debloat-your-phone-run-adb-shell-commands-no-root-no-pc
+    </string>
+    <string name="snackbar_intent_failed">Intent failed to start</string>
+
+</resources>
