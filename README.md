@@ -1,6 +1,3 @@
-Writing a clear and concise README for your Android app is crucial for attracting users and contributors on GitHub. Here's a template to get you started:
-
----
 
 # Antibloater
 
