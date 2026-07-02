@@ -1,85 +1,137 @@
 package com.spring.musk.antibloater.adapter
 
-import android.content.Context
-import android.content.pm.ApplicationInfo
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.CheckBox
-import android.widget.Filter
-import android.widget.ImageView
-import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
 import com.spring.musk.antibloater.R
-import java.util.Locale
+import com.spring.musk.antibloater.databinding.ListItemAppBinding
+import com.spring.musk.antibloater.model.AppCategory
+import com.spring.musk.antibloater.model.AppInfo
+import com.spring.musk.antibloater.model.SafetyRating
 
-class AppListAdapter(context: Context, private val appsList: List<ApplicationInfo>) :
-    ArrayAdapter<ApplicationInfo>(context, R.layout.list_item_app, appsList) {
+/**
+ * High-performance RecyclerView adapter.
+ *
+ * Optimizations:
+ *  - Icons pre-cached in AppInfo (no PackageManager calls during scroll)
+ *  - Tag backgrounds pre-allocated as static drawables (no GC in bind)
+ *  - Colors pre-parsed as constants
+ *  - Thread-safe selection with HashSet
+ */
+class AppListAdapter(
+    private val onSelectionChanged: (selectedCount: Int) -> Unit
+) : ListAdapter<AppInfo, AppListAdapter.AppViewHolder>(AppDiffCallback()) {
 
-    private val checkedApps = mutableSetOf<ApplicationInfo>()
-    private var filteredAppsList = appsList.toMutableList()
+    private val selectedPackages = HashSet<String>()
+    private val selectionLock = Any()
 
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val itemView = convertView ?: LayoutInflater.from(context).inflate(R.layout.list_item_app, parent, false)
-        val appInfo = filteredAppsList[position]
+    // Pre-parsed colors (avoid Color.parseColor in bind)
+    companion object {
+        private val COLOR_BLOAT_TEXT = Color.parseColor("#E65100")
+        private val COLOR_BLOAT_BG = Color.parseColor("#FFF3E0")
+        private val COLOR_SYSTEM_TEXT = Color.parseColor("#1565C0")
+        private val COLOR_SYSTEM_BG = Color.parseColor("#E3F2FD")
+        private val COLOR_USER_TEXT = Color.parseColor("#2E7D32")
+        private val COLOR_USER_BG = Color.parseColor("#E8F5E9")
+        private val COLOR_DANGER_TEXT = Color.parseColor("#B71C1C")
+        private val COLOR_DANGER_BG = Color.parseColor("#FFEBEE")
+    }
 
-        val appNameTextView: TextView = itemView.findViewById(R.id.appName)
-        val appIconImageView: ImageView = itemView.findViewById(R.id.appIcon)
-        val appCheckbox: CheckBox = itemView.findViewById(R.id.appCheckbox)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
+        val binding = ListItemAppBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return AppViewHolder(binding)
+    }
 
-        appNameTextView.text = context.packageManager.getApplicationLabel(appInfo).toString()
-        appIconImageView.setImageDrawable(context.packageManager.getApplicationIcon(appInfo))
+    override fun onBindViewHolder(holder: AppViewHolder, position: Int) {
+        holder.bind(getItem(position))
+    }
 
-        appCheckbox.setOnCheckedChangeListener(null)
-        appCheckbox.isChecked = checkedApps.contains(appInfo)
+    fun getSelectedApps(): List<AppInfo> {
+        val selected = synchronized(selectionLock) { selectedPackages.toSet() }
+        return currentList.filter { it.packageName in selected }
+    }
 
-        appCheckbox.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                checkedApps.add(appInfo)
-            } else {
-                checkedApps.remove(appInfo)
-            }
+    fun getSelectedCount(): Int = synchronized(selectionLock) { selectedPackages.size }
+
+    fun clearSelections() {
+        synchronized(selectionLock) { selectedPackages.clear() }
+        notifyDataSetChanged()
+        onSelectionChanged(0)
+    }
+
+    inner class AppViewHolder(
+        private val binding: ListItemAppBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        // Pre-allocate tag background (reused across rebinds)
+        private val tagBackground = GradientDrawable().apply {
+            cornerRadius = 12f
         }
 
-        return itemView
-    }
+        fun bind(appInfo: AppInfo) {
+            binding.appName.text = appInfo.appName
 
-    override fun getCount(): Int {
-        return filteredAppsList.size
-    }
+            // Use pre-cached icon (no IPC)
+            if (appInfo.icon != null) {
+                binding.appIcon.setImageDrawable(appInfo.icon)
+            }
 
-    override fun getItem(position: Int): ApplicationInfo? {
-        return filteredAppsList[position]
-    }
-
-    override fun getFilter(): Filter {
-        return object : Filter() {
-            override fun performFiltering(constraint: CharSequence?): FilterResults {
-                val queryString = constraint.toString().toLowerCase(Locale.getDefault())
-                val filterResults = FilterResults()
-
-                val filteredList = if (queryString.isEmpty()) {
-                    appsList.toMutableList()
-                } else {
-                    appsList.filter { appInfo ->
-                        context.packageManager.getApplicationLabel(appInfo)
-                            .toString().toLowerCase(Locale.getDefault()).contains(queryString) ||
-                                appInfo.packageName.toLowerCase(Locale.getDefault()).contains(queryString)
-                    }.toMutableList()
+            // Category tag with safety-aware coloring
+            binding.appCategoryTag.visibility = View.VISIBLE
+            when (appInfo.safety) {
+                SafetyRating.SAFE -> {
+                    binding.appCategoryTag.text = "✓ Safe to remove"
+                    binding.appCategoryTag.setTextColor(COLOR_USER_TEXT)
+                    tagBackground.setColor(COLOR_USER_BG)
                 }
+                SafetyRating.CAUTION -> {
+                    binding.appCategoryTag.text = "⚠ Caution"
+                    binding.appCategoryTag.setTextColor(COLOR_BLOAT_TEXT)
+                    tagBackground.setColor(COLOR_BLOAT_BG)
+                }
+                SafetyRating.DANGEROUS -> {
+                    binding.appCategoryTag.text = "✕ Do not remove"
+                    binding.appCategoryTag.setTextColor(COLOR_DANGER_TEXT)
+                    tagBackground.setColor(COLOR_DANGER_BG)
+                }
+            }
+            binding.appCategoryTag.background = tagBackground
 
-                filterResults.values = filteredList
-                return filterResults
+            // Show size in package subtitle
+            binding.appPackage.text = "${appInfo.packageName} · ${appInfo.sizeFormatted}"
+
+            // Checkbox (no listener during state set)
+            binding.appCheckbox.setOnCheckedChangeListener(null)
+            binding.appCheckbox.isChecked = synchronized(selectionLock) {
+                appInfo.packageName in selectedPackages
             }
 
-            override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
-                filteredAppsList = results?.values as MutableList<ApplicationInfo>
-                notifyDataSetChanged()
+            binding.appCheckbox.setOnCheckedChangeListener { _, isChecked ->
+                synchronized(selectionLock) {
+                    if (isChecked) selectedPackages.add(appInfo.packageName)
+                    else selectedPackages.remove(appInfo.packageName)
+                }
+                onSelectionChanged(getSelectedCount())
+            }
+
+            binding.root.setOnClickListener {
+                binding.appCheckbox.isChecked = !binding.appCheckbox.isChecked
             }
         }
     }
 
-    fun getSelectedApps(): Set<ApplicationInfo> {
-        return checkedApps
+    class AppDiffCallback : DiffUtil.ItemCallback<AppInfo>() {
+        override fun areItemsTheSame(oldItem: AppInfo, newItem: AppInfo): Boolean =
+            oldItem.packageName == newItem.packageName
+
+        override fun areContentsTheSame(oldItem: AppInfo, newItem: AppInfo): Boolean =
+            oldItem == newItem
     }
 }
