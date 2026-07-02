@@ -1,32 +1,172 @@
 <resources>
     <string name="app_name">AntiBloater</string>
+
+    <!-- Preference keys (internal) -->
     <string name="buffer_size_key">buffer_size</string>
     <string name="auto_shell_key">auto_shell</string>
     <string name="startup_command_key">startup_command</string>
-    <string name="pair_title">Pairing information</string>
-    <string name="pair_message">You must connect this device to LADB using a pairing code from the \"Wireless
-        debugging\" page in the Developer Settings page. If you have not done this before, click \"Help\" for a
-        tutorial.
-    </string>
-
-    <string name="help">Help</string>
-    <string name="more">More</string>
-    <string name="pair">Pair</string>
-    <string name="skip">Skip</string>
-
     <string name="paired_key">paired</string>
-    <string name="port_hint">Port</string>
 
-    <string name="code_hint">Pairing code</string>
+    <!-- ─── Navigation ─── -->
+    <string name="nav_home">Home</string>
+    <string name="nav_apps">Apps</string>
+    <string name="nav_restore">Restore</string>
+    <string name="nav_settings">Settings</string>
 
-    <string name="command_hint">Shell command</string>
-    <string name="command_hint_waiting">Waiting for connection…</string>
+    <!-- ─── Pairing / Onboarding ─── -->
+    <string name="pairing_title">One-Time Setup</string>
+    <string name="pairing_subtitle">Connect AntiBloater to your device\'s debugging interface. This only needs to be done once.</string>
+    <string name="pairing_step1">① Open Wireless Debugging in your phone settings</string>
+    <string name="pairing_step2">② Tap \"Pair device with pairing code\"</string>
+    <string name="pairing_step3">③ Remember the 6-digit code and port, come back here</string>
+    <string name="pairing_input_title">Enter Pairing Details</string>
+    <string name="pairing_tip">💡 The pairing code is 6 digits and the port is 5 digits. Memorize them quickly — the popup closes when you leave Settings.</string>
+    <string name="open_wireless_debugging">Open Wireless Debugging</string>
+    <string name="enter_pairing_code">I Have My Pairing Code</string>
+    <string name="skip_pairing">Skip for now</string>
 
-    <string name="developer_url">https://www.github.com/tytydraco</string>
-    <string name="source_url">https://www.github.com/tytydraco/LADB</string>
-    <string name="contact_url">mailto:tnnijmeh@gmail.com</string>
-    <string name="tutorial_url">https://www.xda-developers.com/debloat-your-phone-run-adb-shell-commands-no-root-no-pc
-    </string>
-    <string name="snackbar_intent_failed">Intent failed to start</string>
+    <!-- Pairing dialog -->
+    <string name="pair_title">Enter Pairing Details</string>
+    <string name="pair_message">Enter the port number and pairing code shown on the Wireless Debugging screen.</string>
+    <string name="port_hint">Port (e.g. 37149)</string>
+    <string name="code_hint">Pairing code (e.g. 482604)</string>
+    <string name="pair">Connect</string>
+    <string name="cancel">Cancel</string>
 
+    <!-- ─── Connecting ─── -->
+    <string name="connecting_message">Connecting to your device…</string>
+    <string name="connecting_btn">Connecting…</string>
+
+    <!-- ─── Dashboard ─── -->
+    <string name="dashboard_title">Your Device</string>
+    <string name="dashboard_subtitle">Manage and clean up unwanted apps</string>
+    <string name="stat_total_apps">Total Apps</string>
+    <string name="stat_bloatware">Bloatware</string>
+    <string name="stat_system_apps">System Apps</string>
+    <string name="stat_user_apps">Your Apps</string>
+    <string name="status_connected">Connected · Ready to clean</string>
+    <string name="status_disconnected">Not connected</string>
+    <string name="status_tap_to_connect">Not connected · Tap to connect</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="tools_section">Device Tools</string>
+    <string name="manage_apps">Manage Apps</string>
+    <string name="more_features_coming">More features coming soon</string>
+
+    <!-- ─── Category Chips ─── -->
+    <string name="chip_all">All</string>
+    <string name="chip_bloatware">Bloatware</string>
+    <string name="chip_system">System</string>
+    <string name="chip_user">User Installed</string>
+
+    <!-- ─── App List ─── -->
+    <string name="search_hint">Search apps…</string>
+    <string name="start_debloating">Remove Selected</string>
+    <string name="app_icon_desc">App icon</string>
+    <string name="app_count_format">%1$d apps · %2$d selected</string>
+    <string name="no_apps_selected">No apps selected</string>
+
+    <!-- ─── Confirmation ─── -->
+    <string name="confirm_uninstall_title">Remove Apps?</string>
+    <string name="confirm_uninstall_message">This will disable %1$d app(s) for your user profile. You can restore them with a factory reset.\n\nContinue?</string>
+    <string name="uninstall">Remove Apps</string>
+
+    <!-- ─── Progress ─── -->
+    <string name="uninstalling_progress">Removing %1$d of %2$d…</string>
+
+    <!-- ─── Restore ─── -->
+    <string name="restore_title">Restore Apps</string>
+    <string name="restore_subtitle">Bring back previously removed apps</string>
+    <string name="restore_empty">No removed apps to restore.\nRemoved apps will appear here.</string>
+    <string name="restore_btn">Restore</string>
+
+    <!-- ─── Disable mode ─── -->
+    <string name="disable_mode">Disable only</string>
+
+    <!-- ─── Presets ─── -->
+    <string name="presets_title">Quick Debloat</string>
+    <string name="presets_subtitle">One-tap removal of known bloatware for your device brand</string>
+    <string name="preset_apply">Apply</string>
+    <string name="preset_detected">🎯 Detected: %1$s device</string>
+    <string name="preset_done">✓ Removed %1$d apps successfully</string>
+    <string name="quick_debloat">Quick Debloat by Brand</string>
+
+    <!-- ─── Tags ─── -->
+    <string name="tag_bloatware">Bloatware</string>
+    <string name="tag_system">System</string>
+    <string name="tag_user">User</string>
+
+    <!-- ─── Settings ─── -->
+    <string name="app_version">Version 1.0.0</string>
+    <string name="app_description">Remove unwanted pre-installed apps safely. No root required. AntiBloater uses local ADB to disable bloatware for your user profile.</string>
+    <string name="section_links">Links</string>
+    <string name="section_legal">Legal</string>
+    <string name="section_profiles">Debloat Profiles</string>
+    <string name="settings_github">GitHub Repository</string>
+    <string name="settings_rate">Rate on Play Store</string>
+    <string name="settings_share">Share with Friends</string>
+    <string name="settings_tos">Terms of Service</string>
+    <string name="settings_privacy">Privacy Policy</string>
+    <string name="settings_licenses">Open Source Licenses</string>
+    <string name="settings_export">Export Debloat Profile</string>
+    <string name="settings_import">Import Debloat Profile</string>
+    <string name="import_hint">Import coming soon — share profiles via Export for now</string>
+
+    <!-- ─── Boot Apps ─── -->
+    <string name="boot_apps_title">Boot Apps</string>
+    <string name="boot_apps_subtitle">Apps that start automatically when your device boots</string>
+    <string name="boot_apps_count">%1$d apps start at boot</string>
+
+    <!-- ─── After Uninstall ─── -->
+    <string name="uninstall_complete">✓ Removed %1$d apps · Freed ~%2$s</string>
+
+    <!-- ─── Appearance ─── -->
+    <string name="section_appearance">Appearance</string>
+    <string name="settings_dark_mode">Dark Mode</string>
+
+    <!-- ─── Permission Audit ─── -->
+    <string name="perm_title">Permission Audit</string>
+    <string name="perm_summary">%1$d dangerous permission grants across all apps</string>
+
+    <!-- ─── Animations ─── -->
+    <string name="anim_title">Animation Speed</string>
+    <string name="anim_subtitle">Faster animations make your phone feel snappier. Changes apply immediately.</string>
+    <string name="anim_half">⚡ Speed Mode (0.5x)</string>
+    <string name="anim_normal">Normal (1x)</string>
+    <string name="anim_off">Animations OFF</string>
+    <string name="anim_current">Current: %1$s</string>
+
+    <!-- ─── Device Info ─── -->
+    <string name="devinfo_title">Device Info</string>
+    <string name="devinfo_device">Device</string>
+    <string name="devinfo_cpu">Processor</string>
+    <string name="devinfo_ram">Memory</string>
+    <string name="devinfo_storage">Storage</string>
+
+    <!-- ─── Tracker Detector ─── -->
+    <string name="tracker_title">Privacy Scan</string>
+    <string name="tracker_score">Privacy Score: %1$d/100</string>
+
+    <!-- ─── Cache Cleaner ─── -->
+    <string name="cache_title">Cache Cleaner</string>
+    <string name="cache_total">Total cache: %1$s</string>
+    <string name="cache_clear_all">Clear All Cache</string>
+    <string name="cache_cleared">Cache cleared</string>
+
+    <!-- ─── Process Monitor ─── -->
+    <string name="process_title">Running Processes</string>
+    <string name="process_count">%1$d processes running</string>
+    <string name="force_stop">Stop</string>
+    <string name="settings_footer">Made with ❤️ by Spring Musk\n© 2026 AntiBloater. All rights reserved.</string>
+    <string name="share_text">Check out AntiBloater — remove bloatware without root!\nhttps://github.com/SpringMusk026/AntiBloater</string>
+
+    <!-- ─── URLs ─── -->
+    <string name="url_github">https://github.com/SpringMusk026/AntiBloater</string>
+    <string name="url_playstore">https://play.google.com/store/apps/details?id=com.spring.musk.antibloater</string>
+    <string name="url_tos">https://github.com/SpringMusk026/AntiBloater/blob/main/TERMS.md</string>
+    <string name="url_privacy">https://github.com/SpringMusk026/AntiBloater/blob/main/PRIVACY.md</string>
+    <string name="tutorial_url">https://www.xda-developers.com/debloat-your-phone-run-adb-shell-commands-no-root-no-pc</string>
+    <string name="snackbar_intent_failed">Couldn\'t open the link</string>
+
+    <!-- ─── OSS Licenses ─── -->
+    <string name="licenses_content">AntiBloater uses the following open source libraries:\n\n• AndroidX Core, AppCompat, Fragment, Lifecycle, RecyclerView\n  License: Apache 2.0\n  https://developer.android.com/jetpack\n\n• Material Components for Android\n  License: Apache 2.0\n  https://github.com/material-components/material-components-android\n\n• Kotlin Coroutines\n  License: Apache 2.0\n  https://github.com/Kotlin/kotlinx.coroutines\n\n• ADB implementation ported from LADB\n  License: GPL-3.0\n  https://github.com/tytydraco/LADB\n\nFull license texts available at the respective repositories.</string>
 </resources>
