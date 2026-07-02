@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Search -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="12dp"
+            android:hint="@string/search_hint"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:startIconDrawable="@drawable/ic_search">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/search_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:imeOptions="actionSearch" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Category chips -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="12dp"
+            android:layout_marginBottom="4dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_all"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="@string/chip_all" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_bloatware"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chip_bloatware" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_system"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chip_system" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_user"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chip_user" />
+        </com.google.android.material.chip.ChipGroup>
+
+        <!-- App count -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="4dp">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/app_count"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                android:textColor="?android:textColorSecondary" />
+
+            <android.widget.Switch
+                android:id="@+id/switch_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/disable_mode"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                android:textOn="ON"
+                android:textOff="OFF"
+                android:showText="false"
+                android:checked="false" />
+        </LinearLayout>
+
+        <!-- RecyclerView — proper full-height, recycling works -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="80dp" />
+    </LinearLayout>
+
+    <!-- FAB -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_uninstall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:text="@string/start_debloating"
+        android:textAllCaps="false"
+        android:visibility="gone"
+        app:icon="@android:drawable/ic_menu_delete" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
