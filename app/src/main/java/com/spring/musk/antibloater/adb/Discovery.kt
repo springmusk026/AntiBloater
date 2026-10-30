@@ -23,11 +23,14 @@ object Discovery {
     const val PAIRING = "_adb-tls-pairing._tcp"
     const val CONNECT = "_adb-tls-connect._tcp"
 
+    // NsdManager keeps delivering callbacks (e.g. "unregistered") after discovery stops,
+    // so this executor lives as long as the process instead of per discovery
+    private val executor = Executors.newSingleThreadExecutor()
+
     /** Emits the port while the service is advertised, and null when it goes away. */
     fun ports(context: Context, type: String): Flow<Int?> = callbackFlow {
         val nsd = context.getSystemService(NsdManager::class.java)
         val found = mutableMapOf<String, Int>()
-        val executor = Executors.newSingleThreadExecutor()
         val callbacks = mutableListOf<NsdManager.ServiceInfoCallback>()
 
         fun publish() { trySend(found.values.lastOrNull()) }
@@ -75,7 +78,6 @@ object Discovery {
             if (Build.VERSION.SDK_INT >= 34) synchronized(callbacks) {
                 callbacks.forEach { runCatching { nsd.unregisterServiceInfoCallback(it) } }
             }
-            executor.shutdown()
         }
     }.distinctUntilChanged()
 
