@@ -1,22 +1,11 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Modern clean theme - no action bar, edge-to-edge friendly -->
-    <style name="Theme.AntiBloater" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Primary: modern blue-purple -->
-        <item name="colorPrimary">#5B5FE6</item>
-        <item name="colorPrimaryVariant">#4347C9</item>
-        <item name="colorOnPrimary">@android:color/white</item>
-        <!-- Secondary: fresh teal accent -->
-        <item name="colorSecondary">#26C6DA</item>
-        <item name="colorSecondaryVariant">#0097A7</item>
-        <item name="colorOnSecondary">@android:color/black</item>
-        <!-- Surface -->
-        <item name="colorSurface">#FFFFFF</item>
-        <item name="colorSurfaceVariant">#F5F5F5</item>
-        <item name="colorOnSurface">#1C1B1F</item>
-        <!-- Status bar: light for edge-to-edge -->
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Only the window before Compose draws; colors match Theme.kt -->
+    <style name="Theme.AntiBloater" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
-        <!-- Outline color for cards -->
-        <item name="colorOutline">#E0E0E0</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
+    <color name="background">#F5F6F3</color>
+    <color name="icon_background">#0F3D2E</color>
 </resources>
