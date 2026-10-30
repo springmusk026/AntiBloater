@@ -1,7 +1,9 @@
 package com.spring.musk.antibloater.adb
 
 import android.content.Context
+import android.os.Process
 import android.util.Log
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -29,11 +31,47 @@ class Adb(context: Context) {
 
     suspend fun pair(port: Int, code: String) = run(listOf("pair", "127.0.0.1:$port", code), timeoutSec = 15)
 
-    suspend fun connect(port: Int): Boolean {
-        val out = run(listOf("connect", "127.0.0.1:$port"), timeoutSec = 10)
-        val ok = out.text.contains("connected to")
-        if (ok) serial = "127.0.0.1:$port"
-        return ok && shell("echo ok").text.trim() == "ok"
+    /** Result of [connect]: connected, rejected (needs pairing again), or something else went wrong. */
+    enum class Connect { Ok, Rejected, Failed }
+
+    suspend fun connect(port: Int): Connect {
+        var result = tryConnect(port)
+        if (result == Connect.Failed) {
+            // A server left over from an earlier run can hang every call; start a fresh one and retry once
+            restartServer()
+            result = tryConnect(port)
+        }
+        return result
+    }
+
+    private suspend fun tryConnect(port: Int): Connect {
+        if (!run(listOf("start-server"), timeoutSec = 20).ok) return Connect.Failed
+        val out = run(listOf("connect", "127.0.0.1:$port"), timeoutSec = 15)
+        val text = out.text.lowercase()
+        if (text.contains("authenticat") || text.contains("unauthorized")) return Connect.Rejected
+        if (!text.contains("connected to")) return Connect.Failed
+        serial = "127.0.0.1:$port"
+        val echo = shell("echo ok", timeoutSec = 10)
+        return when {
+            echo.text.trim() == "ok" -> Connect.Ok
+            echo.text.lowercase().contains("unauthorized") -> Connect.Rejected
+            else -> Connect.Failed
+        }
+    }
+
+    /** Stops our adb server, killing it outright if it doesn't answer. Only ever our own processes. */
+    suspend fun restartServer() = withContext(Dispatchers.IO) {
+        if (!run(listOf("kill-server"), timeoutSec = 5).ok) {
+            File("/proc").listFiles()?.forEach { dir ->
+                val pid = dir.name.toIntOrNull() ?: return@forEach
+                val cmd = runCatching { File(dir, "cmdline").readText() }.getOrNull() ?: return@forEach
+                if (pid != Process.myPid() && cmd.startsWith(binary)) {
+                    Log.i(TAG, "killing stuck adb server $pid")
+                    Process.killProcess(pid)
+                }
+            }
+        }
+        serial = null
     }
 
     suspend fun disconnect() {
@@ -47,7 +85,6 @@ class Adb(context: Context) {
         return run(listOf("-s", target, "shell", command), timeoutSec)
     }
 
-    suspend fun killServer() = run(listOf("kill-server"), timeoutSec = 5)
 
     private suspend fun run(args: List<String>, timeoutSec: Long): Output = withContext(Dispatchers.IO) {
         val process = try {

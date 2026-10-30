@@ -92,7 +92,7 @@ class Connection(private val context: Context, val adb: Adb, private val scope: 
                 if (current.isConnected && adb.shell("echo ok").ok) return@withLock
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
                     _status.value = Status.Connecting
-                    _status.value = if (adb.connect(LEGACY_PORT)) Status.Connected else Status.NeedsComputer
+                    _status.value = if (adb.connect(LEGACY_PORT) == Adb.Connect.Ok) Status.Connected else Status.NeedsComputer
                     return@withLock
                 }
                 if (!paired) {
@@ -138,6 +138,7 @@ class Connection(private val context: Context, val adb: Adb, private val scope: 
             return false
         }
         _status.value = pairing.copy(busy = true, error = null)
+        adb.restartServer()
         val result = adb.pair(port, digits)
         if (!result.ok || !result.text.contains("Successfully paired")) {
             _status.value = pairing.copy(error = "That code didn't work. Check it and try again.", busy = false)
@@ -154,7 +155,7 @@ class Connection(private val context: Context, val adb: Adb, private val scope: 
     /** Disconnects and deletes the pairing key, so the phone has to be paired again. */
     suspend fun forget() {
         adb.disconnect()
-        adb.killServer()
+        adb.restartServer()
         File(context.filesDir, ".android").deleteRecursively()
         paired = false
         refresh()
@@ -167,10 +168,15 @@ class Connection(private val context: Context, val adb: Adb, private val scope: 
         }
         android.util.Log.i(Adb.TAG, "connect port from mDNS: $port")
         port ?: return Status.Failed("Couldn't find wireless debugging on this phone. Turn it off and on again.")
-        if (adb.connect(port)) return Status.Connected
-        // Keys rejected: wireless debugging was reset or "Revoke authorizations" was used
-        paired = false
-        return Status.NeedsPairing
+        return when (adb.connect(port)) {
+            Adb.Connect.Ok -> Status.Connected
+            Adb.Connect.Rejected -> {
+                // Wireless debugging was reset, or "Revoke authorizations" was used
+                paired = false
+                Status.NeedsPairing
+            }
+            Adb.Connect.Failed -> Status.Failed("Couldn't reach wireless debugging. Tap Try again, or switch Wireless debugging off and on.")
+        }
     }
 
     private fun blocker(): Status? {
