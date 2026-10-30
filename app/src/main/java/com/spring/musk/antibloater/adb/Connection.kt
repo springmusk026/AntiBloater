@@ -46,7 +46,13 @@ sealed interface Status {
  * Wi-Fi so the status updates by itself while the user flips switches in Settings.
  */
 class Connection(private val context: Context, val adb: Adb, private val scope: CoroutineScope) {
-    private val _status = MutableStateFlow<Status>(Status.Checking)
+    private val _status = object {
+        private val flow = MutableStateFlow<Status>(Status.Checking)
+        var value: Status
+            get() = flow.value
+            set(v) { if (v != flow.value) android.util.Log.i(Adb.TAG, "status ${flow.value} → $v"); flow.value = v }
+        fun asStateFlow() = flow.asStateFlow()
+    }
     val status: StateFlow<Status> = _status.asStateFlow()
 
     private val prefs = context.getSharedPreferences("connection", Context.MODE_PRIVATE)
@@ -158,7 +164,9 @@ class Connection(private val context: Context, val adb: Adb, private val scope: 
         // The connect port changes every time wireless debugging is switched on
         val port = withTimeoutOrNull(8_000) {
             Discovery.ports(context, Discovery.CONNECT).filterNotNull().first()
-        } ?: return Status.Failed("Couldn't find wireless debugging on this phone. Turn it off and on again.")
+        }
+        android.util.Log.i(Adb.TAG, "connect port from mDNS: $port")
+        port ?: return Status.Failed("Couldn't find wireless debugging on this phone. Turn it off and on again.")
         if (adb.connect(port)) return Status.Connected
         // Keys rejected: wireless debugging was reset or "Revoke authorizations" was used
         paired = false

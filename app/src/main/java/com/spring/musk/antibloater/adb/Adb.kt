@@ -1,6 +1,7 @@
 package com.spring.musk.antibloater.adb
 
 import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -73,12 +74,13 @@ class Adb(context: Context) {
                 runCatching { process.inputStream.close() }
                 text.await()
             }
-            if (exited) Output(process.exitValue(), output.trim())
-            else Output(-1, "Timed out after ${timeoutSec}s")
+            (if (exited) Output(process.exitValue(), output.trim()) else Output(-1, "Timed out after ${timeoutSec}s"))
+                .also { Log.i(TAG, "adb ${args.joinToString(" ").replace(Regex("pair (\\S+) \\d{6}"), "pair $1 ******")} → ${it.exitCode}: ${it.text.take(200)}") }
         }
     }
 
     companion object {
         private const val SERVER_PORT = "15037"
+        const val TAG = "AntiBloater"
     }
 }

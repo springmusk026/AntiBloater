@@ -21,6 +21,7 @@ data class AppTrackers(val pkg: String, val label: String, val trackers: List<Tr
  * so each signature is a binary search instead of a scan through the whole file.
  */
 object Trackers {
+    private const val SELF = "com.spring.musk.antibloater"
     val known = listOf(
         Tracker("Google AdMob", TrackerKind.Ads, listOf("Lcom/google/android/gms/ads/")),
         Tracker("Google Firebase Analytics", TrackerKind.Analytics, listOf("Lcom/google/firebase/analytics/")),
@@ -77,7 +78,8 @@ object Trackers {
     /** Scans the apps you installed. Calls [progress] with (done, total) as it goes. */
     fun scan(pm: PackageManager, progress: (Int, Int) -> Unit): List<AppTrackers> {
         @Suppress("DEPRECATION")
-        val apps = pm.getInstalledApplications(0).filter { it.flags and ApplicationInfo.FLAG_SYSTEM == 0 }
+        val apps = pm.getInstalledApplications(0)
+            .filter { it.flags and ApplicationInfo.FLAG_SYSTEM == 0 && it.packageName != SELF }
         return apps.mapIndexedNotNull { i, app ->
             progress(i, apps.size)
             val found = scan(app)
@@ -103,7 +105,11 @@ object Trackers {
         return known.filter { it in found }
     }
 
-    /** Binary search of the dex string table for a string starting with [prefix]. */
+    /**
+     * Whether the dex has a class under [prefix]: a string like "Lcom/appsflyer/AppsFlyerLib;".
+     * The bare prefix alone doesn't count, or a scanner's own signature list would match itself.
+     * Binary search finds where the prefix would sort, then the matches sit right after it.
+     */
     internal fun hasPrefix(dex: ByteArray, prefix: String): Boolean {
         if (dex.size < 0x70) return false
         val buf = ByteBuffer.wrap(dex).order(ByteOrder.LITTLE_ENDIAN)
@@ -111,16 +117,33 @@ object Trackers {
         val idsOff = buf.getInt(0x3C)
         if (count <= 0 || idsOff <= 0 || idsOff + count * 4L > dex.size) return false
         val target = prefix.toByteArray(Charsets.US_ASCII)
+        fun start(i: Int) = stringStart(dex, buf.getInt(idsOff + i * 4))
         var lo = 0
-        var hi = count - 1
-        while (lo <= hi) {
+        var hi = count
+        while (lo < hi) {
             val mid = (lo + hi) ushr 1
-            val cmp = compareAt(dex, stringStart(dex, buf.getInt(idsOff + mid * 4)), target)
+            if (compareAt(dex, start(mid), target) < 0) lo = mid + 1 else hi = mid
+        }
+        var i = lo
+        while (i < count && i < lo + 64) {
+            val at = start(i)
+            if (compareAt(dex, at, target) != 0) return false
+            if (isClassName(dex, at + target.size)) return true
+            i++
+        }
+        return false
+    }
+
+    /** True if the bytes from [from] run on to a ';' with no spaces, i.e. the rest of a class descriptor. */
+    private fun isClassName(dex: ByteArray, from: Int): Boolean {
+        var p = from
+        while (p < dex.size) {
+            val b = dex[p].toInt() and 0xFF
             when {
-                cmp == 0 -> return true
-                cmp < 0 -> lo = mid + 1
-                else -> hi = mid - 1
+                b == ';'.code -> return p > from
+                b == 0 || b == ' '.code -> return false
             }
+            p++
         }
         return false
     }

@@ -128,7 +128,7 @@ private fun Hero(state: HomeState, onReview: () -> Unit) {
         Text("Safe to remove", style = Type.heading, color = p.secondary)
         Spacer(Modifier.height(Space.xs))
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(if (state.loading) "–" else "${shown.value.toInt()}", style = Type.hero, color = p.text)
+            Text(if (state.loading) "–" else "${kotlin.math.round(shown.value).toInt()}", style = Type.hero, color = p.text)
             Spacer(Modifier.width(Space.s))
             Text("apps", style = Type.body, color = p.secondary, modifier = Modifier.padding(bottom = Space.s))
         }

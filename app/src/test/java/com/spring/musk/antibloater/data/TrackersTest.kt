@@ -44,6 +44,15 @@ class TrackersTest {
         assertEquals(false, Trackers.hasPrefix(sample, "Lcom/appsflyerx/"))
     }
 
+    @Test fun ignoresBarePrefixStrings() {
+        // A scanner's own signature list holds the prefixes as plain strings
+        val scanner = dex("Lcom/appsflyer/", "Lcom/adjust/sdk/", "Lcom/example/Main;")
+        assertEquals(false, Trackers.hasPrefix(scanner, "Lcom/appsflyer/"))
+        assertEquals(false, Trackers.hasPrefix(scanner, "Lcom/adjust/sdk/"))
+        val both = dex("Lcom/appsflyer/", "Lcom/appsflyer/AppsFlyerLib;")
+        assertEquals(true, Trackers.hasPrefix(both, "Lcom/appsflyer/"))
+    }
+
     @Test fun survivesGarbage() {
         assertEquals(false, Trackers.hasPrefix(ByteArray(10), "Lcom/"))
         assertEquals(false, Trackers.hasPrefix(ByteArray(0x80) { -1 }, "Lcom/"))

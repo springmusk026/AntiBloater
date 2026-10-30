@@ -37,7 +37,9 @@ object Discovery {
 
         fun resolved(service: NsdServiceInfo) {
             val host = hostOf(service) ?: return
-            if (!isThisDevice(host)) return
+            val mine = isThisDevice(host)
+            android.util.Log.i(Adb.TAG, "mDNS $type ${service.serviceName} at $host:${service.port} mine=$mine")
+            if (!mine) return
             synchronized(found) { found[service.serviceName] = service.port; publish() }
         }
 
