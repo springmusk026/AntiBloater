@@ -44,6 +44,20 @@ class ToolsViewModel(application: Application) : AndroidViewModel(application) {
     val notice: StateFlow<String?> = _notice.asStateFlow()
     fun clearNotice() { _notice.value = null }
 
+    /** One live fact per tool for the Tools hub. */
+    fun facts(): Map<Tool, String> = buildMap {
+        _grants.value?.let { g ->
+            val n = g.filter { !it.system && it.group in setOf(
+                com.spring.musk.antibloater.data.Sensitive.Location, com.spring.musk.antibloater.data.Sensitive.Camera,
+                com.spring.musk.antibloater.data.Sensitive.Microphone) }.map { it.pkg }.toSet().size
+            put(Tool.Permissions, "${Format.count(n, "app")} · location, camera, mic")
+        }
+        put(Tool.Trackers, _scan.value.results?.let { "${Format.count(it.size, "app")} with trackers · of ${_scan.value.total}" }
+            ?: "Not scanned yet")
+        _starters.value?.let { put(Tool.Background, "${Format.count(it.count { s -> !s.system }, "app")} start at boot") }
+        put(Tool.Animations, when (val v = _scale.value) { null -> "Settings differ"; 1f -> "Now 1×, the default"; 0f -> "Now off"; else -> "Now ${v}×" })
+    }
+
     fun loadGrants() = viewModelScope.launch(Dispatchers.IO) { _grants.value = Permissions.granted(pm) }
 
     fun revoke(grant: Grant) = viewModelScope.launch {

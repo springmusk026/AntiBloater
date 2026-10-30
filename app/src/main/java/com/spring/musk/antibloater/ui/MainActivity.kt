@@ -22,14 +22,9 @@ import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,7 +50,11 @@ import com.spring.musk.antibloater.data.Profile
 import com.spring.musk.antibloater.data.Removal
 import com.spring.musk.antibloater.ui.theme.AntiBloaterTheme
 import com.spring.musk.antibloater.ui.theme.LocalPalette
-import com.spring.musk.antibloater.ui.theme.Type
+import com.spring.musk.antibloater.ui.theme.NavItem
+import com.spring.musk.antibloater.ui.theme.PillNav
+import com.spring.musk.antibloater.ui.theme.Space
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -74,7 +73,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
+internal enum class Tab(val route: String, val label: String, val icon: ImageVector) {
     Home("home", "Home", Icons.Rounded.Home),
     Apps("apps", "Apps", Icons.Rounded.Apps),
     History("history", "History", Icons.Rounded.History),
@@ -154,18 +153,11 @@ private fun App(model: MainViewModel) {
         containerColor = p.background,
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
-            if (Tab.entries.any { it.route == route }) NavigationBar(containerColor = p.surface) {
-                Tab.entries.forEach { tab ->
-                    NavigationBarItem(
-                        selected = route == tab.route,
-                        onClick = { nav.go(tab.route) },
-                        icon = { Icon(tab.icon, null) },
-                        label = { Text(tab.label, style = Type.small) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = p.text, selectedTextColor = p.text, indicatorColor = p.raised,
-                            unselectedIconColor = p.tertiary, unselectedTextColor = p.tertiary),
-                    )
-                }
+            val tab = if (route?.startsWith("tool/") == true) Tab.Tools.ordinal else Tab.entries.indexOfFirst { it.route == route }
+            androidx.compose.animation.AnimatedVisibility(tab >= 0,
+                enter = fadeIn(), exit = fadeOut()) {
+                PillNav(Tab.entries.map { NavItem(it.label, it.icon) }, tab, { nav.go(Tab.entries[it].route) },
+                    Modifier.navigationBarsPadding().padding(horizontal = Space.l, vertical = Space.s))
             }
         },
     ) { padding ->
@@ -209,7 +201,15 @@ private fun App(model: MainViewModel) {
                         onImport = { importer.launch(arrayOf("application/json", "text/plain", "*/*")) },
                         contentPadding = padding)
                 }
-                composable("tools") { ToolsScreen({ nav.navigate(it.route) }, padding) }
+                composable("tools") {
+                    val tools = toolsModel()
+                    // Recompose when any fact source changes
+                    val grants by tools.grants.collectAsState(); val scan by tools.scan.collectAsState()
+                    val starters by tools.starters.collectAsState(); val scale by tools.scale.collectAsState()
+                    LaunchedEffect(Unit) { tools.loadGrants(); tools.loadStarters() }
+                    val facts = remember(grants, scan, starters, scale) { tools.facts() }
+                    ToolsScreen({ nav.navigate(it.route) }, padding, facts)
+                }
                 composable("connect") { ConnectScreen(status, connectActions, padding) }
                 composable("settings") {
                     val action by model.prefs.removeAction.collectAsState()
@@ -277,14 +277,14 @@ private fun androidx.navigation.NavGraphBuilder.toolRoutes(
     nav: NavHostController, connected: Boolean, padding: androidx.compose.foundation.layout.PaddingValues, toast: (String) -> Unit,
 ) {
     composable(Tool.Permissions.route) {
-        val tools: ToolsViewModel = viewModel()
+        val tools = toolsModel()
         val grants by tools.grants.collectAsState()
         Notices(tools, toast)
         LaunchedEffect(Unit) { tools.loadGrants() }
         PermissionsScreen(grants, connected, tools::revoke, { nav.navigate("connect") }, { nav.popBackStack() }, padding)
     }
     composable(Tool.Trackers.route) {
-        val tools: ToolsViewModel = viewModel()
+        val tools = toolsModel()
         val scan by tools.scan.collectAsState()
         val context = androidx.compose.ui.platform.LocalContext.current
         TrackersScreen(scan, tools::scanTrackers, { pkg ->
@@ -292,14 +292,14 @@ private fun androidx.navigation.NavGraphBuilder.toolRoutes(
         }, { nav.popBackStack() }, padding)
     }
     composable(Tool.Background.route) {
-        val tools: ToolsViewModel = viewModel()
+        val tools = toolsModel()
         val starters by tools.starters.collectAsState()
         Notices(tools, toast)
         LaunchedEffect(connected) { tools.loadStarters() }
         BackgroundScreen(starters, connected, { s, r -> tools.setRestricted(s, r) }, { nav.navigate("connect") }, { nav.popBackStack() }, padding)
     }
     composable(Tool.Animations.route) {
-        val tools: ToolsViewModel = viewModel()
+        val tools = toolsModel()
         val scale by tools.scale.collectAsState()
         Notices(tools, toast)
         AnimationsScreen(scale, connected, { tools.setScale(it) }, { nav.navigate("connect") }, { nav.popBackStack() }, padding)
@@ -311,6 +311,10 @@ private fun Notices(tools: ToolsViewModel, toast: (String) -> Unit) {
     val notice by tools.notice.collectAsState()
     LaunchedEffect(notice) { notice?.let { toast(it); tools.clearNotice() } }
 }
+
+/** One ToolsViewModel for the hub and every tool, so results survive moving between them. */
+@Composable
+private fun toolsModel(): ToolsViewModel = viewModel(androidx.compose.ui.platform.LocalContext.current as ComponentActivity)
 
 /** Switches tabs without stacking them up. */
 private fun NavHostController.go(route: String) = navigate(route) {

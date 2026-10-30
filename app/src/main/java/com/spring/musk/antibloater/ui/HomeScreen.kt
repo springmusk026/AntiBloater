@@ -3,6 +3,7 @@ package com.spring.musk.antibloater.ui
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -41,6 +42,8 @@ import com.spring.musk.antibloater.ui.theme.ShareBar
 import com.spring.musk.antibloater.ui.theme.Space
 import com.spring.musk.antibloater.ui.theme.StatusDot
 import com.spring.musk.antibloater.ui.theme.Type
+import com.spring.musk.antibloater.ui.theme.entrance
+import com.spring.musk.antibloater.ui.theme.reduceMotion
 
 @Composable
 fun HomeScreen(
@@ -71,11 +74,11 @@ fun HomeScreen(
                 CircleButton(Icons.Rounded.Settings, "Settings", onSettings)
             }
         }
-        item { Hero(state, onReview) }
-        if (state.cameBack.isNotEmpty()) item { CameBack(state, onReapply) }
-        if (!status.isConnected && status != Status.Checking) item { ConnectCard(onConnect) }
+        item { Box(Modifier.entrance(0)) { Hero(state, onReview) } }
+        if (state.cameBack.isNotEmpty()) item { Box(Modifier.entrance(1)) { CameBack(state, onReapply) } }
+        if (!status.isConnected && status != Status.Checking) item { Box(Modifier.entrance(2)) { ConnectCard(onConnect) } }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+            Row(Modifier.entrance(3), horizontalArrangement = Arrangement.spacedBy(Space.m)) {
                 Tile("Removed or disabled", "${state.removed}", "See them", Modifier.weight(1f), onRemoved)
                 Tile("Changes made", "${state.changes}", "History", Modifier.weight(1f), onHistory)
             }
@@ -83,7 +86,7 @@ fun HomeScreen(
         if (state.recent.isNotEmpty()) {
             item { SectionHeader("Recent") }
             item {
-                Card(padding = PaddingValues(vertical = Space.xs)) {
+                Card(Modifier.entrance(4), padding = PaddingValues(vertical = Space.xs)) {
                     state.recent.forEach { RecentRow(it) }
                 }
             }
@@ -102,7 +105,7 @@ fun ConnectionLine(status: Status, onConnect: () -> Unit) {
         else -> p.neutral to "Not connected · browsing only"
     }
     Row(
-        Modifier.clickable(enabled = !status.isConnected, onClick = onConnect).padding(vertical = 2.dp),
+        Modifier.clickable(enabled = !status.isConnected, onClick = onConnect).padding(vertical = Space.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StatusDot(color, live = status == Status.Connecting || status is Status.Pairing)
@@ -117,14 +120,17 @@ private fun Hero(state: HomeState, onReview: () -> Unit) {
     val target = state.recommended.size
     // Starts at whatever is known when first drawn (0 while loading) and counts to each new value
     val shown = remember { Animatable(target.toFloat()) }
-    LaunchedEffect(target) { shown.animateTo(target.toFloat(), com.spring.musk.antibloater.ui.theme.Motion.count()) }
+    val still = reduceMotion()
+    LaunchedEffect(target) {
+        if (still) shown.snapTo(target.toFloat()) else shown.animateTo(target.toFloat(), com.spring.musk.antibloater.ui.theme.Motion.count())
+    }
     Card(glow = p.accent) {
         Text("Safe to remove", style = Type.heading, color = p.secondary)
         Spacer(Modifier.height(Space.xs))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(if (state.loading) "–" else "${shown.value.toInt()}", style = Type.hero, color = p.text)
             Spacer(Modifier.width(Space.s))
-            Text("apps", style = Type.body, color = p.secondary, modifier = Modifier.padding(bottom = 6.dp))
+            Text("apps", style = Type.body, color = p.secondary, modifier = Modifier.padding(bottom = Space.s))
         }
         Text("Rated Recommended by UAD-ng's reviewers, on this ${state.device}", style = Type.caption, color = p.secondary)
         if (target > 0) {
@@ -137,7 +143,7 @@ private fun Hero(state: HomeState, onReview: () -> Unit) {
                 bySource.take(3).forEach { (source, n) ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         StatusDot(colors(source), size = 6.dp)
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(Space.xs))
                         Caption("${source.label} $n")
                     }
                 }
@@ -148,6 +154,10 @@ private fun Hero(state: HomeState, onReview: () -> Unit) {
             Spacer(Modifier.height(Space.m))
             Caption("Nothing left that's rated safe. Advanced and Expert packages are in Apps.", color = p.accent)
         }
+        Spacer(Modifier.height(Space.m))
+        Caption(listOf("${Format.thousands(state.listSize)} packages known",
+            state.lastChange?.let { "changed ${Format.ago(it)}" }).filterNotNull().joinToString(" · "),
+            mono = true, color = p.tertiary)
     }
 }
 
@@ -167,7 +177,7 @@ private fun sourceColors(): (Source) -> androidx.compose.ui.graphics.Color {
 @Composable
 private fun CameBack(state: HomeState, onReapply: () -> Unit) {
     val p = LocalPalette.current
-    Card(glow = p.advanced) {
+    Card {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.Sync, null, tint = p.advanced, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(Space.s))
@@ -202,7 +212,7 @@ private fun Tile(label: String, value: String, action: String, modifier: Modifie
         Spacer(Modifier.height(Space.xs))
         Text(value, style = Type.metric, color = p.text)
         Spacer(Modifier.height(Space.s))
-        Caption(action + " →", color = p.accent)
+        Caption(action + " →", color = p.secondary)
     }
 }
 

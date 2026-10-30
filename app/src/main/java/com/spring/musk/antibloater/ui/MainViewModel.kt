@@ -52,7 +52,9 @@ data class HomeState(
     val cameBack: List<Pkg>,
     val recent: List<Event>,
     val changes: Int,
+    val listSize: Int = 0,
 ) {
+    val lastChange get() = recent.firstOrNull()?.at
     val recommendedBySource get() = recommended.groupingBy { it.source }.eachCount()
         .toList().sortedByDescending { it.second }
 }
@@ -75,8 +77,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val packages: StateFlow<List<Pkg>?> = app.packages.all
 
-    val home: StateFlow<HomeState> = combine(app.packages.all, app.history.events) { all, events ->
-        homeState(all, events)
+    val home: StateFlow<HomeState> = combine(app.packages.all, app.history.events, app.knowledge.entries) { all, events, list ->
+        homeState(all, events).copy(listSize = list.size)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, homeState(null, emptyList()))
 
     val visible: StateFlow<List<Pkg>> = combine(app.packages.all, _filters) { all, f -> filter(all.orEmpty(), f) }

@@ -71,8 +71,12 @@ fun Card(
 ) {
     val p = LocalPalette.current
     val shape = RoundedCornerShape(Radius.card)
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.985f else 1f, Motion.spring, label = "card")
     Column(
         modifier
+            .scale(scale)
             .fillMaxWidth()
             .clip(shape)
             .background(p.surface)
@@ -81,8 +85,12 @@ fun Card(
                     listOf(glow.copy(alpha = if (p.dark) 0.22f else 0.14f), Color.Transparent),
                     center = Offset(size.width, 0f), radius = size.maxDimension * 0.75f))
             } else Modifier)
+            // In dark, a faint top highlight separates the card from the background like light from above
+            .then(if (p.dark) Modifier.drawBehind {
+                drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.035f), Color.Transparent), endY = size.height * 0.4f))
+            } else Modifier)
             .border(1.dp, p.hairline, shape)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(source, androidx.compose.material3.ripple(), onClick = onClick) else Modifier)
             .padding(padding),
         content = content,
     )
@@ -113,9 +121,9 @@ fun LevelBadge(removal: Removal, modifier: Modifier = Modifier) {
         modifier
             .clip(CircleShape)
             .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = Space.s, vertical = 2.dp),
+            .padding(horizontal = Space.s, vertical = Space.xs),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(Space.xs),
     ) {
         StatusDot(color, size = 6.dp)
         Text(removal.label, style = Type.small, color = color)
@@ -130,7 +138,7 @@ fun Tag(text: String, color: Color = LocalPalette.current.secondary) {
         modifier = Modifier
             .clip(CircleShape)
             .background(LocalPalette.current.raised)
-            .padding(horizontal = Space.s, vertical = 2.dp),
+            .padding(horizontal = Space.s, vertical = Space.xs),
     )
 }
 
@@ -216,9 +224,9 @@ fun Chip(text: String, selected: Boolean, onClick: () -> Unit, color: Color? = n
             .clickable(onClick = onClick)
             .padding(horizontal = Space.m),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(Space.xs),
     ) {
-        if (color != null) StatusDot(color, size = 7.dp)
+        if (color != null) StatusDot(color, size = 6.dp)
         Text(text, style = Type.small, color = foreground)
         if (count != null) Text("$count", style = Type.small.copy(fontFeatureSettings = "tnum"),
             color = if (selected) p.background.copy(alpha = 0.7f) else p.tertiary)
@@ -271,7 +279,7 @@ fun Caption(text: String, modifier: Modifier = Modifier, color: Color = LocalPal
 fun ShareBar(segments: List<Pair<Color, Int>>, modifier: Modifier = Modifier) {
     val total = segments.sumOf { it.second }.coerceAtLeast(1)
     Row(modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(LocalPalette.current.raised),
-        horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        horizontalArrangement = Arrangement.spacedBy(Space.xs)) {
         segments.filter { it.second > 0 }.forEach { (color, n) ->
             Box(Modifier.weight(n.toFloat() / total).height(8.dp).background(color))
         }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +53,7 @@ import com.spring.musk.antibloater.ui.theme.LevelBadge
 import com.spring.musk.antibloater.ui.theme.LocalPalette
 import com.spring.musk.antibloater.ui.theme.PrimaryButton
 import com.spring.musk.antibloater.ui.theme.Radius
+import com.spring.musk.antibloater.ui.theme.SkeletonRows
 import com.spring.musk.antibloater.ui.theme.Space
 import com.spring.musk.antibloater.ui.theme.Tag
 import com.spring.musk.antibloater.ui.theme.Type
@@ -93,10 +96,10 @@ fun AppsScreen(
                     contentPadding = PaddingValues(horizontal = Space.l, vertical = Space.m),
                     horizontalArrangement = Arrangement.spacedBy(Space.s),
                 ) {
-                    item { Chip("All", filters.level == null, { onFilters(filters.copy(level = null)) }, count = counts[null]) }
+                    item { Chip("All", filters.level == null, { onFilters(filters.copy(level = null)) }, count = if (loading) null else counts[null]) }
                     items(Removal.entries.toList()) { level ->
                         Chip(level.label, filters.level == level, { onFilters(filters.copy(level = level)) },
-                            color = level.color, count = counts[level] ?: 0)
+                            color = level.color, count = if (loading) null else counts[level] ?: 0)
                     }
                 }
             }
@@ -116,8 +119,9 @@ fun AppsScreen(
                     if (filters.shown == Shown.Off) "Apps you remove or disable show up here, ready to restore."
                     else "Try another level, or include the apps you installed.")
             }
+            if (loading) item { SkeletonRows(8) }
             items(apps, key = { it.name }) { pkg ->
-                AppRow(pkg, selected = pkg.name in selection, selecting = selection.isNotEmpty(),
+                AppRow(pkg, showLevel = filters.level == null, selected = pkg.name in selection, selecting = selection.isNotEmpty(),
                     onClick = { if (selection.isEmpty()) onOpen(pkg) else onToggle(pkg) }, onSelect = { onToggle(pkg) })
             }
         }
@@ -153,29 +157,31 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
     }
 }
 
+/** Pill segmented control; the selection slides between equal-width options. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     val p = LocalPalette.current
-    Row(Modifier.height(34.dp).clip(CircleShape).background(p.raised).padding(3.dp)) {
-        options.forEachIndexed { i, label ->
-            val on = i == selected
-            Box(
-                Modifier.fillMaxHeightCompat().clip(CircleShape)
-                    .background(if (on) p.surface else androidx.compose.ui.graphics.Color.Transparent)
-                    .combinedClickable(onClick = { onSelect(i) })
-                    .padding(horizontal = Space.m),
-                contentAlignment = Alignment.Center,
-            ) { Text(label, style = Type.small, color = if (on) p.text else p.secondary) }
+    val item = 80.dp
+    val x by androidx.compose.animation.core.animateDpAsState(item * selected,
+        androidx.compose.animation.core.spring(dampingRatio = 0.86f, stiffness = 500f), label = "segment")
+    Box(Modifier.height(36.dp).clip(CircleShape).background(p.raised).padding(Space.xs)) {
+        Box(Modifier.offset(x = x).width(item).height(28.dp).clip(CircleShape).background(p.surface)
+            .border(1.dp, p.hairline, CircleShape))
+        Row {
+            options.forEachIndexed { i, label ->
+                Box(
+                    Modifier.width(item).height(28.dp).clip(CircleShape).combinedClickable(onClick = { onSelect(i) }),
+                    contentAlignment = Alignment.Center,
+                ) { Text(label, style = Type.small, color = if (i == selected) p.text else p.secondary) }
+            }
         }
     }
 }
 
-private fun Modifier.fillMaxHeightCompat() = this.then(Modifier.height(28.dp))
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AppRow(pkg: Pkg, selected: Boolean, selecting: Boolean, onClick: () -> Unit, onSelect: () -> Unit) {
+private fun AppRow(pkg: Pkg, showLevel: Boolean, selected: Boolean, selecting: Boolean, onClick: () -> Unit, onSelect: () -> Unit) {
     val p = LocalPalette.current
     Row(
         Modifier.fillMaxWidth()
@@ -197,18 +203,20 @@ private fun AppRow(pkg: Pkg, selected: Boolean, selecting: Boolean, onClick: () 
         }
         Spacer(Modifier.width(Space.m))
         Column(Modifier.weight(1f)) {
-            Text(pkg.label, style = Type.bodyStrong, color = p.text, maxLines = 1)
-            Caption(pkg.name, mono = true, color = p.tertiary)
-            Spacer(Modifier.height(6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                LevelBadge(pkg.removal)
-                if (pkg.entry != null) Tag(pkg.source.label)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                Text(pkg.label, style = Type.bodyStrong, color = p.text, maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 when (pkg.state) {
                     PkgState.Removed -> Tag("Removed")
                     PkgState.Disabled -> Tag("Disabled")
-                    PkgState.Installed -> if (!pkg.system) Tag("Installed by you")
+                    PkgState.Installed -> if (!pkg.system) Tag("Yours")
                 }
             }
+            Caption(pkg.name, mono = true, color = p.tertiary)
+        }
+        if (showLevel) {
+            Spacer(Modifier.width(Space.s))
+            LevelBadge(pkg.removal)
         }
     }
 }

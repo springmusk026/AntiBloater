@@ -56,6 +56,8 @@ import com.spring.musk.antibloater.ui.theme.SecondaryButton
 import com.spring.musk.antibloater.ui.theme.Space
 import com.spring.musk.antibloater.ui.theme.Tag
 import com.spring.musk.antibloater.ui.theme.Type
+import com.spring.musk.antibloater.ui.theme.entrance
+import com.spring.musk.antibloater.ui.theme.SkeletonRows
 
 enum class Tool(val title: String, val blurb: String, val icon: ImageVector, val route: String) {
     Permissions("Permission audit", "Which apps can use your camera, microphone, location and more. Take access away in one tap.",
@@ -67,7 +69,7 @@ enum class Tool(val title: String, val blurb: String, val icon: ImageVector, val
 }
 
 @Composable
-fun ToolsScreen(onOpen: (Tool) -> Unit, contentPadding: PaddingValues = PaddingValues()) {
+fun ToolsScreen(onOpen: (Tool) -> Unit, contentPadding: PaddingValues = PaddingValues(), facts: Map<Tool, String> = emptyMap()) {
     val p = LocalPalette.current
     LazyColumn(
         contentPadding = padded(contentPadding),
@@ -75,7 +77,7 @@ fun ToolsScreen(onOpen: (Tool) -> Unit, contentPadding: PaddingValues = PaddingV
     ) {
         item { Text("Tools", style = Type.title, color = p.text) }
         items(Tool.entries.toList()) { tool ->
-            Card(onClick = { onOpen(tool) }) {
+            Card(Modifier.entrance(tool.ordinal), onClick = { onOpen(tool) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(40.dp).clip(CircleShape).background(p.raised), contentAlignment = Alignment.Center) {
                         Icon(tool.icon, null, tint = p.text, modifier = Modifier.size(20.dp))
@@ -83,8 +85,12 @@ fun ToolsScreen(onOpen: (Tool) -> Unit, contentPadding: PaddingValues = PaddingV
                     Spacer(Modifier.width(Space.m))
                     Column(Modifier.weight(1f)) {
                         Text(tool.title, style = Type.bodyStrong, color = p.text)
-                        Spacer(Modifier.height(2.dp))
+                        Spacer(Modifier.height(Space.xs))
                         Text(tool.blurb, style = Type.caption, color = p.secondary)
+                        facts[tool]?.let {
+                            Spacer(Modifier.height(Space.s))
+                            Caption(it, mono = true, color = p.text)
+                        }
                     }
                     Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = p.tertiary)
                 }
@@ -143,6 +149,7 @@ fun PermissionsScreen(
             }
         }
         item { Chip("Include system apps", system, { system = !system }) }
+        if (grants == null) item { SkeletonRows(4) }
         if (grants != null && rows.isEmpty()) item {
             EmptyState(Icons.Rounded.Shield, "No apps", "Nothing ${if (system) "" else "you installed "}holds ${group.label.lowercase()} access.")
         }
@@ -203,7 +210,7 @@ fun TrackersScreen(scan: TrackerScan, onScan: () -> Unit, onOpenApp: (String) ->
                             Text("${results.size}", style = Type.hero, color = p.text)
                             Spacer(Modifier.width(Space.s))
                             Text(if (results.size == 1) "app has trackers" else "apps have trackers", style = Type.body,
-                                color = p.secondary, modifier = Modifier.padding(bottom = 6.dp))
+                                color = p.secondary, modifier = Modifier.padding(bottom = Space.s))
                         }
                         Caption("out of ${scan.total} you installed · ${results.sumOf { it.trackers.size }} trackers in all")
                         Spacer(Modifier.height(Space.m))
@@ -229,7 +236,7 @@ private fun TrackerRow(app: AppTrackers, onOpenApp: (String) -> Unit) {
                 Text(app.label, style = Type.bodyStrong, color = p.text, maxLines = 1, modifier = Modifier.weight(1f))
                 Caption("${app.trackers.size}", mono = true, color = p.advanced)
             }
-            Spacer(Modifier.height(Space.xs))
+            Spacer(Modifier.height(Space.s))
             FlowTags(app.trackers.map { it.name })
         }
     }
@@ -238,7 +245,7 @@ private fun TrackerRow(app: AppTrackers, onOpenApp: (String) -> Unit) {
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun FlowTags(tags: List<String>) {
-    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Space.xs), verticalArrangement = Arrangement.spacedBy(Space.xs)) {
         tags.forEach { Tag(it) }
     }
 }
@@ -257,6 +264,7 @@ fun BackgroundScreen(
         toolHeader(Tool.Background, onBack, "Restricted apps can't run in the background until you open them, which stops most of them starting at boot. Messaging apps may deliver notifications late.")
         if (!connected) item { NeedsConnection(onConnect, "restrict apps") }
         item { Chip("Include system apps", system, { system = !system }) }
+        if (starters == null) item { SkeletonRows(4) }
         if (rows.isNotEmpty()) item {
             Card(padding = PaddingValues(vertical = Space.xs)) {
                 rows.forEach { s ->

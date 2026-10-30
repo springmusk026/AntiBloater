@@ -6,7 +6,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.Build
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Home
+import com.spring.musk.antibloater.ui.Tool
+import com.spring.musk.antibloater.ui.theme.LocalStill
+import com.spring.musk.antibloater.ui.theme.NavItem
+import com.spring.musk.antibloater.ui.theme.PillNav
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.cash.paparazzi.DeviceConfig
@@ -91,12 +103,21 @@ class Screens(private val dark: Boolean) {
     )
 
     private fun shot(name: String, content: @Composable () -> Unit) = paparazzi.snapshot(name) {
-        AntiBloaterTheme(dark) {
-            Box(Modifier.fillMaxSize().background(LocalPalette.current.background)) { content() }
+        CompositionLocalProvider(LocalStill provides true) {
+            AntiBloaterTheme(dark) {
+                Box(Modifier.fillMaxSize().background(LocalPalette.current.background)) { content() }
+            }
         }
     }
 
-    private val inset = PaddingValues(top = 40.dp)
+    private val inset = PaddingValues(top = 40.dp, bottom = 88.dp)
+
+    /** The app's floating nav, drawn over the screen like in the app. */
+    @Composable private fun Nav(selected: Int) = Box(Modifier.fillMaxSize()) {
+        PillNav(listOf(NavItem("Home", Icons.Rounded.Home), NavItem("Apps", Icons.Rounded.Apps),
+            NavItem("History", Icons.Rounded.History), NavItem("Tools", Icons.Rounded.Build)), selected, {},
+            Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp, vertical = 8.dp))
+    }
 
     private val events = listOf(
         Event("com.samsung.android.bixby.agent", "Bixby Voice", Action.Uninstall, now - 3_600_000, 2),
@@ -108,13 +129,14 @@ class Screens(private val dark: Boolean) {
     @Test fun home() = shot("home") {
         val recommended = apps.filter { it.removal == Removal.Recommended }
         HomeScreen(HomeState("Samsung SM-S911B", false, recommended + recommended + recommended.take(4), 14,
-            cameBack = apps.take(2), recent = events.take(3), changes = 27),
+            cameBack = apps.take(2), recent = events.take(3), changes = 27, listSize = 5382),
             Status.Connected, {}, {}, {}, {}, {}, {}, inset)
+        Nav(0)
     }
 
     @Test fun homeDisconnected() = shot("home-disconnected") {
         HomeScreen(HomeState("Xiaomi 2201117TG", false, apps.filter { it.removal == Removal.Recommended }, 0,
-            emptyList(), emptyList(), 0), Status.NeedsWirelessDebugging, {}, {}, {}, {}, {}, {}, inset)
+            emptyList(), emptyList(), 0, 5382), Status.NeedsWirelessDebugging, {}, {}, {}, {}, {}, {}, inset)
     }
 
     @Test fun apps() = shot("apps") {
@@ -122,6 +144,12 @@ class Screens(private val dark: Boolean) {
         val list = MainViewModel.filter(apps, filters)
         AppsScreen(list, false, filters, mapOf(null to 11, Removal.Recommended to 7, Removal.Advanced to 3, Removal.Expert to 1),
             setOf(), true, Action.Uninstall, {}, {}, {}, {}, {}, {}, {}, inset)
+        Nav(1)
+    }
+
+    @Test fun appsLoading() = shot("apps-loading") {
+        AppsScreen(emptyList(), true, Filters(), emptyMap(), setOf(), false, Action.Uninstall, {}, {}, {}, {}, {}, {}, {}, inset)
+        Nav(1)
     }
 
     @Test fun appsSelecting() = shot("apps-selecting") {
@@ -160,7 +188,8 @@ class Screens(private val dark: Boolean) {
     }
 
     @Test fun history() = shot("history") {
-        HistoryScreen(events, { if (it == "com.facebook.services") PkgState.Installed else PkgState.Removed }, true, {}, {}, {}, inset)
+        HistoryScreen(events, { when (it) { "com.facebook.services" -> PkgState.Installed; "com.samsung.android.app.tips" -> PkgState.Disabled; else -> PkgState.Removed } }, true, {}, {}, {}, inset)
+        Nav(2)
     }
 
     private val connect = ConnectActions({}, {}, {}, {}, {}, {}, {}, {})
@@ -169,7 +198,11 @@ class Screens(private val dark: Boolean) {
     @Test fun connectPairing() = shot("connect-pairing") { ConnectScreen(Status.Pairing(port = 37145), connect, inset) }
     @Test fun connectWaiting() = shot("connect-waiting") { ConnectScreen(Status.Pairing(port = null), connect, inset) }
 
-    @Test fun tools() = shot("tools") { ToolsScreen({}, inset) }
+    @Test fun tools() = shot("tools") {
+        ToolsScreen({}, inset, mapOf(Tool.Permissions to "14 apps · location, camera, mic",
+            Tool.Trackers to "Not scanned yet", Tool.Background to "9 apps start at boot", Tool.Animations to "Now 0.5×"))
+        Nav(3)
+    }
 
     @Test fun trackers() = shot("trackers") {
         val t = Trackers.known.associateBy { it.name }
