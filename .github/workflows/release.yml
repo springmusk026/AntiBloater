@@ -41,8 +41,8 @@ jobs:
           else
             echo "VERSION_NAME=0.0.0-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
           fi
-          # v1.0 shipped as versionCode 1
-          echo "VERSION_CODE=$((GITHUB_RUN_NUMBER + 1))" >> "$GITHUB_ENV"
+          # 1.x used codes up to 3; keep every new build above them
+          echo "VERSION_CODE=$((GITHUB_RUN_NUMBER + 10))" >> "$GITHUB_ENV"
 
       - name: Keystore
         env:
@@ -61,7 +61,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew testDebugUnitTest assembleRelease --no-daemon
           mkdir dist
           cp app/build/outputs/apk/release/app-release.apk "dist/AntiBloater-$VERSION_NAME.apk"
           cd dist && sha256sum *.apk > SHA256SUMS
