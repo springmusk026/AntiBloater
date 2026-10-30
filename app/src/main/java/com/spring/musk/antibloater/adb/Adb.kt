@@ -46,7 +46,7 @@ class Adb(context: Context) {
 
     private suspend fun tryConnect(port: Int): Connect {
         if (!run(listOf("start-server"), timeoutSec = 20).ok) return Connect.Failed
-        val out = run(listOf("connect", "127.0.0.1:$port"), timeoutSec = 15)
+        val out = run(listOf("connect", "127.0.0.1:$port"), timeoutSec = 30)
         val text = out.text.lowercase()
         if (text.contains("authenticat") || text.contains("unauthorized")) return Connect.Rejected
         if (!text.contains("connected to")) return Connect.Failed
